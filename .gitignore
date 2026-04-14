@@ -100,4 +100,4 @@ dmypy.json
 *.swo
 *.bak
 *.tmp
-*.temp
+*.temp.env

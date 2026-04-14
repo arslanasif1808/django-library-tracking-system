@@ -1,3 +1,7 @@
+from datetime import timedelta
+from threading import active_count
+from xml.dom import ValidationErr
+from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Author, Book, Member, Loan
@@ -51,4 +55,25 @@ class MemberViewSet(viewsets.ModelViewSet):
 
 class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.all()
-    serializer_class = LoanSerializer
+    serializer_class = (LoanSerializer
+
+    @action(detail=True, methods=['post']))
+    def extend_due_date(loan, days):
+        if not isinstance(days, int) or days <=0:
+            raise ValueError("Days must be a positive Integer")
+
+        loan.due_date = loan.due_date + timedelta(days=days)
+        loan.save()
+        return loan
+
+    @action(detail=False, methods=["get"], url_path="active-members")
+    def top_active_members(self, request):
+        data=(
+            Loan.objects
+            .filter(is_returned=False)
+            .values("member_id", "member_name")
+            .annotate(active_loan_count = Count("id"))
+            .order_by("active_loan_count")[:5]
+        )
+
+        return Response(data)
